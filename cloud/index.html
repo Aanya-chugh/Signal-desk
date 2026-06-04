@@ -99,7 +99,38 @@ input[type=range]{accent-color:var(--accent);width:96px}
 .err{color:var(--coral);font-size:12.5px;margin-top:10px}
 .detclose{display:none}
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}::-webkit-scrollbar-track{background:transparent}
-@media(max-width:900px){.main{grid-template-columns:1fr}.detail{position:fixed;inset:0;height:100%;z-index:50;border-left:none;transform:translateX(100%);transition:.25s;top:0}.detail.open{transform:none}.detclose{display:flex;position:absolute;top:14px;right:16px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);align-items:center;justify-content:center;cursor:pointer;font-size:20px;z-index:2}header{padding:18px 18px 12px}.controls{padding:12px 18px}.brand h1{font-size:23px}.status{gap:14px}}
+@media(max-width:900px){
+  .main{grid-template-columns:1fr}
+  .detail{position:fixed;inset:0;height:100%;z-index:50;border-left:none;transform:translateX(100%);transition:.25s;top:0;padding:56px 18px 50px}
+  .detail.open{transform:none}
+  .detclose{display:flex;position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);align-items:center;justify-content:center;cursor:pointer;font-size:22px;z-index:2}
+  header{padding:18px 18px 12px;flex-wrap:wrap;gap:12px}
+  .controls{padding:12px 16px;gap:10px}
+  .brand h1{font-size:24px}
+  .search{min-width:100%;order:-1}
+  .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;padding-bottom:3px}
+  .chips::-webkit-scrollbar{height:0}
+  .status{gap:16px}
+  .list{padding:6px 12px 60px}
+}
+@media(max-width:560px){
+  header{padding:14px 14px 10px}
+  .brand h1{font-size:21px}
+  .brand .sub{font-size:10.5px}
+  .status{gap:0 18px;width:100%;justify-content:space-between;text-align:left;flex-wrap:wrap}
+  .stat .n{font-size:16px}
+  .status .stat:nth-child(4){display:none}
+  .card{grid-template-columns:50px 1fr;gap:12px;padding:15px 8px}
+  .score{font-size:21px}
+  .bar{width:38px}
+  .card h3{font-size:15.5px}
+  .meta{gap:6px 8px;font-size:11px}
+  .detail h2{font-size:20px}
+  .ad-card .hl{font-size:19px}
+  .npill{min-width:0;flex:1 1 auto}
+  .d-score{gap:12px}
+  .d-score .big{font-size:36px}
+}
 </style>
 </head>
 <body>
