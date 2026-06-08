@@ -4,6 +4,8 @@
 // Set in Vercel: AUTH_SECRET, and (optional but recommended) HF_TOKEN
 import crypto from "crypto";
 
+export const maxDuration = 60; // give image generation room to finish
+
 // If HF ever rejects this model on your free token, just change this one line
 // to another text-to-image model id, e.g. "stabilityai/stable-diffusion-xl-base-1.0".
 const HF_MODEL = "black-forest-labs/FLUX.1-schnell";
@@ -72,6 +74,21 @@ export default async function handler(req, res) {
     } catch (e) { /* fall through */ }
   }
 
-  // Fallback: keyless Pollinations URL the browser can load directly.
-  return res.status(200).json({ niche, source: "pollinations", image: pollinations(prompt) });
+  // Fallback: fetch from keyless Pollinations server-side and return the actual
+  // image bytes as a data URL, so the browser always gets a ready-to-render image
+  // (no slow/blank client-side load).
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    const r = await fetch(pollinations(prompt), { signal: ctrl.signal });
+    clearTimeout(timer);
+    const ct = r.headers.get("content-type") || "image/jpeg";
+    if (r.ok && ct.startsWith("image/")) {
+      const b64 = Buffer.from(await r.arrayBuffer()).toString("base64");
+      return res.status(200).json({ niche, source: "pollinations", image: "data:" + ct + ";base64," + b64 });
+    }
+    return res.status(502).json({ error: "Image service was busy — tap Regenerate to try again." });
+  } catch (e) {
+    return res.status(502).json({ error: "Image timed out — tap Regenerate to try again." });
+  }
 }

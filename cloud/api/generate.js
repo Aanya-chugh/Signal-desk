@@ -46,13 +46,14 @@ export default async function handler(req, res) {
     let prompt, max_tokens;
     if (mode === "script") {
       prompt =
-        `You are a senior US social-video scriptwriter for a ${niche} brand.\n` +
+        `You are an award-winning US creative director writing a SHOOTABLE 20-30 second video ad script for a ${niche} brand.\n` +
         `Trending story:\nTITLE: "${a.title || ""}"\nTOPIC: ${a.category || ""}\n\n` +
-        `Write a 20-30 second UGC-style video ad script that newsjacks this story to promote ${niche} ` +
-        `to a US audience. The bridge must feel natural and tasteful, never forced or exploitative.${sens}\n` +
+        `Newsjack this story to promote ${niche} to a US audience. The bridge must feel natural and tasteful, never forced or exploitative.${sens}\n` +
+        `Write a real production-ready script: a creative concept, who is on camera, what they actually SAY (real spoken lines), what we SEE (visual/action direction), and on-screen captions.\n` +
         `Return ONLY valid JSON, no markdown:\n` +
-        `{"hook":"first 3 seconds, scroll-stopping spoken line","body":"2-4 short spoken lines as one string with line breaks","cta":"one-line call to action","onscreen":"a short on-screen caption suggestion"}`;
-      max_tokens = 520;
+        `{"concept":"one punchy sentence describing the creative idea","format":"e.g. UGC selfie-video / talking-head / mini-skit","talent":"who is on camera, e.g. a relatable homeowner in their 30s","scenes":[{"time":"0-3s","visual":"what the camera shows and any action","line":"the exact words the person says on camera or in voiceover","onscreen":"on-screen caption text"}],"cta":"the final spoken + on-screen call to action"}\n` +
+        `Use 3 to 4 scenes that tell a clear mini story: problem -> turn -> payoff.`;
+      max_tokens = 750;
     } else {
       prompt =
         `You are a senior US direct-response copywriter for a ${niche} brand.\n` +
