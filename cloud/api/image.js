@@ -38,7 +38,7 @@ function cors(req, res) {
 function pollinations(prompt) {
   const seed = Math.floor(Math.random() * 1e9);
   return "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
-    "?width=768&height=768&nologo=true&seed=" + seed;
+    "?width=768&height=768&seed=" + seed;
 }
 
 export default async function handler(req, res) {
@@ -74,21 +74,22 @@ export default async function handler(req, res) {
     } catch (e) { /* fall through */ }
   }
 
-  // Fallback: fetch from keyless Pollinations server-side and return the actual
-  // image bytes as a data URL, so the browser always gets a ready-to-render image
-  // (no slow/blank client-side load).
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 45000);
-    const r = await fetch(pollinations(prompt), { signal: ctrl.signal });
-    clearTimeout(timer);
-    const ct = r.headers.get("content-type") || "image/jpeg";
-    if (r.ok && ct.startsWith("image/")) {
-      const b64 = Buffer.from(await r.arrayBuffer()).toString("base64");
-      return res.status(200).json({ niche, source: "pollinations", image: "data:" + ct + ";base64," + b64 });
-    }
-    return res.status(502).json({ error: "Image service was busy — tap Regenerate to try again." });
-  } catch (e) {
-    return res.status(502).json({ error: "Image timed out — tap Regenerate to try again." });
+  // Fallback: keyless Pollinations, fetched server-side and returned as image
+  // bytes (data URL) so the browser always gets a ready-to-render image.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 45000);
+      const r = await fetch(pollinations(prompt), { signal: ctrl.signal, headers: { Accept: "image/*" } });
+      clearTimeout(timer);
+      if (r.ok) {
+        const buf = Buffer.from(await r.arrayBuffer());
+        if (buf.length > 1000) {
+          const mime = (buf[0] === 0x89 && buf[1] === 0x50) ? "image/png" : "image/jpeg";
+          return res.status(200).json({ niche, source: "pollinations", image: "data:" + mime + ";base64," + buf.toString("base64") });
+        }
+      }
+    } catch (e) { /* try again */ }
   }
+  return res.status(502).json({ error: "Image service was busy — tap Regenerate to try again." });
 }

@@ -46,23 +46,23 @@ export default async function handler(req, res) {
     let prompt, max_tokens;
     if (mode === "script") {
       prompt =
-        `You are an award-winning US creative director writing a SHOOTABLE 20-30 second video ad script for a ${niche} brand.\n` +
+        `You are an award-winning US creative director writing a SHOOTABLE 15-second social VIDEO AD for a ${niche} brand.\n` +
         `Trending story:\nTITLE: "${a.title || ""}"\nTOPIC: ${a.category || ""}\n\n` +
-        `Newsjack this story to promote ${niche} to a US audience. The bridge must feel natural and tasteful, never forced or exploitative.${sens}\n` +
-        `Write a real production-ready script: a creative concept, who is on camera, what they actually SAY (real spoken lines), what we SEE (visual/action direction), and on-screen captions.\n` +
-        `Return ONLY valid JSON, no markdown:\n` +
-        `{"concept":"one punchy sentence describing the creative idea","format":"e.g. UGC selfie-video / talking-head / mini-skit","talent":"who is on camera, e.g. a relatable homeowner in their 30s","scenes":[{"time":"0-3s","visual":"what the camera shows and any action","line":"the exact words the person says on camera or in voiceover","onscreen":"on-screen caption text"}],"cta":"the final spoken + on-screen call to action"}\n` +
-        `Use 3 to 4 scenes that tell a clear mini story: problem -> turn -> payoff.`;
-      max_tokens = 750;
+        `Newsjack this story to promote ${niche} to a US audience — natural and tasteful, never forced or exploitative.${sens}\n` +
+        `Write a real shot list: a one-line creative concept, then exactly 4 scenes covering 0-15 seconds. ` +
+        `Each scene needs a time range, what the camera SHOWS (visual/action), a spoken VOICEOVER line, and the on-screen TEXT overlay (short, punchy).\n` +
+        `Return ONLY valid JSON, no markdown. Every value must be a plain string:\n` +
+        `{"concept":"one punchy sentence","scenes":[{"scene":"Scene 1","time":"0-4 sec","visual":"what we see / action","voiceover":"the spoken line","onscreen":"on-screen text overlay"}],"cta":"button label, e.g. Learn More or Get a Quote"}\n` +
+        `Use exactly 4 scenes telling a clear mini story: hook -> reveal -> payoff -> brand + CTA.`;
+      max_tokens = 800;
     } else {
       prompt =
-        `You are a senior US direct-response copywriter for a ${niche} brand.\n` +
-        `Trending story:\nTITLE: "${a.title || ""}"\nSOURCE: ${a.source || a.domain || ""}\n` +
-        `TOPIC: ${a.category || ""}\n\nWrite ONE scroll-stopping social ad that newsjacks this story ` +
-        `to promote ${niche} to a US audience. The bridge must feel natural and tasteful, never forced ` +
-        `or exploitative.${sens}\nReturn ONLY valid JSON, no markdown:\n` +
-        `{"headline":"<=8 words, punchy","description":"1-2 sentences, <=30 words, ends with a soft CTA"}`;
-      max_tokens = 300;
+        `You are a senior US direct-response copywriter for a ${niche} brand creating a Facebook/Instagram IMAGE AD.\n` +
+        `Trending story:\nTITLE: "${a.title || ""}"\nSOURCE: ${a.source || a.domain || ""}\nTOPIC: ${a.category || ""}\n\n` +
+        `Newsjack this story to promote ${niche} to a US audience — natural and tasteful, never forced or exploitative.${sens}\n` +
+        `Return ONLY valid JSON, no markdown. Every value a plain string; points is an array of exactly 3 short strings:\n` +
+        `{"headline":"<=8 words, punchy, may begin with one emoji","body":"2-3 short sentences of primary ad text","points":["short benefit","short benefit","short benefit"],"cta":"button label, e.g. Learn More or Get a Quote"}`;
+      max_tokens = 380;
     }
 
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -80,7 +80,13 @@ export default async function handler(req, res) {
 
     if (mode === "script")
       return res.status(200).json({ niche, mode, script: obj });
-    return res.status(200).json({ niche, mode, headline: obj.headline || "", description: obj.description || "" });
+    return res.status(200).json({
+      niche, mode,
+      headline: obj.headline || "",
+      body: obj.body || obj.description || "",
+      points: Array.isArray(obj.points) ? obj.points : [],
+      cta: obj.cta || "Learn More",
+    });
   } catch (e) {
     return res.status(500).json({ error: String(e.message || e) });
   }
