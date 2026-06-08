@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
     const a = body.article || {};
     const niche = body.niche || "Home Insurance";
-    const mode = body.mode === "script" ? "script" : "copy";
+    const mode = body.mode === "script" ? "script" : body.mode === "imagead" ? "imagead" : "copy";
     const sens = a.sensitive
       ? " NOTE: this story is sensitive/tragic, so be respectful, lead with empathy, and do not trivialize it."
       : "";
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         `{"concept":"one punchy sentence","scenes":[{"scene":"Scene 1","time":"0-4 sec","visual":"what we see / action","voiceover":"the spoken line","onscreen":"on-screen text overlay"}],"cta":"button label, e.g. Learn More or Get a Quote"}\n` +
         `Use exactly 4 scenes telling a clear mini story: hook -> reveal -> payoff -> brand + CTA.`;
       max_tokens = 800;
-    } else {
+    } else if (mode === "imagead") {
       prompt =
         `You are a senior US direct-response copywriter for a ${niche} brand creating a Facebook/Instagram IMAGE AD.\n` +
         `Trending story:\nTITLE: "${a.title || ""}"\nSOURCE: ${a.source || a.domain || ""}\nTOPIC: ${a.category || ""}\n\n` +
@@ -63,6 +63,14 @@ export default async function handler(req, res) {
         `Return ONLY valid JSON, no markdown. Every value a plain string; points is an array of exactly 3 short strings:\n` +
         `{"headline":"<=8 words, punchy, may begin with one emoji","body":"2-3 short sentences of primary ad text","points":["short benefit","short benefit","short benefit"],"cta":"button label, e.g. Learn More or Get a Quote"}`;
       max_tokens = 380;
+    } else {
+      prompt =
+        `You are a senior US direct-response copywriter for a ${niche} brand.\n` +
+        `Trending story:\nTITLE: "${a.title || ""}"\nSOURCE: ${a.source || a.domain || ""}\nTOPIC: ${a.category || ""}\n\n` +
+        `Write ONE scroll-stopping social ad that newsjacks this story to promote ${niche} to a US audience. Natural and tasteful, never forced or exploitative.${sens}\n` +
+        `Return ONLY valid JSON, no markdown:\n` +
+        `{"headline":"<=8 words, punchy","description":"1-2 sentences, <=30 words, ends with a soft CTA"}`;
+      max_tokens = 300;
     }
 
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -80,13 +88,15 @@ export default async function handler(req, res) {
 
     if (mode === "script")
       return res.status(200).json({ niche, mode, script: obj });
-    return res.status(200).json({
-      niche, mode,
-      headline: obj.headline || "",
-      body: obj.body || obj.description || "",
-      points: Array.isArray(obj.points) ? obj.points : [],
-      cta: obj.cta || "Learn More",
-    });
+    if (mode === "imagead")
+      return res.status(200).json({
+        niche, mode,
+        headline: obj.headline || "",
+        body: obj.body || obj.description || "",
+        points: Array.isArray(obj.points) ? obj.points : [],
+        cta: obj.cta || "Learn More",
+      });
+    return res.status(200).json({ niche, mode, headline: obj.headline || "", description: obj.description || "" });
   } catch (e) {
     return res.status(500).json({ error: String(e.message || e) });
   }
