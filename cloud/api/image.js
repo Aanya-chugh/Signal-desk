@@ -1,14 +1,12 @@
-// Vercel function: generate a niche-themed ad IMAGE. ADMIN only.
-// Tries Hugging Face first (higher quality, needs free HF_TOKEN); if that's
-// unavailable it falls back to Pollinations (keyless), so images always work.
-// Set in Vercel: AUTH_SECRET, and (optional but recommended) HF_TOKEN
+// Vercel function: generate a niche-themed ad IMAGE via Google's Gemini image
+// model (gemini-2.5-flash-image, "Nano Banana"). ADMIN only.
+// Set in Vercel: AUTH_SECRET, GEMINI_API_KEY (free key from aistudio.google.com).
 import crypto from "crypto";
 
 export const maxDuration = 60; // give image generation room to finish
 
-// If HF ever rejects this model on your free token, just change this one line
-// to another text-to-image model id, e.g. "stabilityai/stable-diffusion-xl-base-1.0".
-const HF_MODEL = "black-forest-labs/FLUX.1-schnell";
+// If you ever want a different image model, change this one line.
+const GEMINI_MODEL = "gemini-2.5-flash-image";
 
 const SCENES = {
   "Home Insurance": "a warm, well-protected modern suburban family home at golden hour, strong sense of safety and security, soft cinematic light",
@@ -35,11 +33,6 @@ function cors(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 }
-function pollinations(prompt) {
-  const seed = Math.floor(Math.random() * 1e9);
-  return "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
-    "?width=768&height=768&seed=" + seed;
-}
 
 export default async function handler(req, res) {
   cors(req, res);
@@ -50,46 +43,34 @@ export default async function handler(req, res) {
   if (!p) return res.status(401).json({ error: "unauthorized" });
   if (p.role !== "admin") return res.status(403).json({ error: "Viewer access can't generate — ask an admin for the admin key." });
 
+  const gkey = process.env.GEMINI_API_KEY;
+  if (!gkey) return res.status(400).json({ error: "Set GEMINI_API_KEY in Vercel (free key from aistudio.google.com)." });
+
   const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
   const niche = SCENES[body.niche] ? body.niche : "Home Insurance";
-  const styles = ["premium advertising photography", "clean commercial poster style", "modern lifestyle brand photo", "bright editorial ad photography"];
-  const style = styles[Math.floor(Math.random() * styles.length)];
-  const prompt = `${SCENES[niche]}, ${style}, high detail, professional color grading. ` +
+  const prompt = `Professional advertising photo: ${SCENES[niche]}. Clean modern commercial style, high detail. ` +
     `No text, no words, no logos, no watermarks, no real recognizable faces.`;
 
-  const hf = process.env.HF_TOKEN;
-  if (hf) {
-    try {
-      const r = await fetch("https://api-inference.huggingface.co/models/" + HF_MODEL, {
+  try {
+    const r = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent",
+      {
         method: "POST",
-        headers: { Authorization: "Bearer " + hf, "Content-Type": "application/json", Accept: "image/png" },
-        body: JSON.stringify({ inputs: prompt, parameters: { num_inference_steps: 4 } }),
-      });
-      const ct = r.headers.get("content-type") || "";
-      if (r.ok && ct.startsWith("image/")) {
-        const b64 = Buffer.from(await r.arrayBuffer()).toString("base64");
-        return res.status(200).json({ niche, source: "huggingface", image: "data:" + ct + ";base64," + b64 });
+        headers: { "Content-Type": "application/json", "x-goog-api-key": gkey },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
       }
-      // HF returned JSON (loading / error) -> fall through to Pollinations
-    } catch (e) { /* fall through */ }
+    );
+    const data = await r.json();
+    const parts = (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+    const part = parts.find((x) => (x.inlineData && x.inlineData.data) || (x.inline_data && x.inline_data.data));
+    const inline = part && (part.inlineData || part.inline_data);
+    if (inline && inline.data) {
+      const mime = inline.mimeType || inline.mime_type || "image/png";
+      return res.status(200).json({ niche, source: "gemini", image: "data:" + mime + ";base64," + inline.data });
+    }
+    const msg = (data && data.error && data.error.message) || "Gemini returned no image (check the model name or your key's image access).";
+    return res.status(502).json({ error: "Gemini: " + String(msg).slice(0, 200) });
+  } catch (e) {
+    return res.status(502).json({ error: "Gemini error: " + String(e.message || e).slice(0, 200) });
   }
-
-  // Fallback: keyless Pollinations, fetched server-side and returned as image
-  // bytes (data URL) so the browser always gets a ready-to-render image.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 45000);
-      const r = await fetch(pollinations(prompt), { signal: ctrl.signal, headers: { Accept: "image/*" } });
-      clearTimeout(timer);
-      if (r.ok) {
-        const buf = Buffer.from(await r.arrayBuffer());
-        if (buf.length > 1000) {
-          const mime = (buf[0] === 0x89 && buf[1] === 0x50) ? "image/png" : "image/jpeg";
-          return res.status(200).json({ niche, source: "pollinations", image: "data:" + mime + ";base64," + buf.toString("base64") });
-        }
-      }
-    } catch (e) { /* try again */ }
-  }
-  return res.status(502).json({ error: "Image service was busy — tap Regenerate to try again." });
 }
