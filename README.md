@@ -70,7 +70,7 @@ open dashboard.html         # the dashboard (uses a static snapshot of scored ne
 ## Licensing note (you're commercial)
 Google News RSS is fine for building but a grey area for commercial production.
 Before going live, swap the fetcher's primary source for a commercial-permitted
-provider (e.g. Mediastack allows commercial use; GDELT is open data). The fetch
+provider (e.g. Mediastack allows commercial use; GDELT is open data).The fetch
 functions return the same shape, so it's a one-function change.
 
 ## See the live site on your own machine (no cloud needed)
