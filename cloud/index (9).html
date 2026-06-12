@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL DESK — Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0c0e;--panel:#141417;--panel2:#1b1b20;--line:#29292f;--ink:#ECEAE2;--muted:#8b8b95;--dim:#5c5c64;--accent:#C9F24A;--accent-d:#0c0c0e;--coral:#FF6A45;--gold:#E8B04B;--blue:#6FB7FF;}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Hanken Grotesk',sans-serif;font-size:15px;line-height:1.5;background-image:radial-gradient(circle at 88% -5%,rgba(201,242,74,.07),transparent 45%),radial-gradient(circle at 0% 100%,rgba(111,183,255,.05),transparent 40%);-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono',monospace}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:26px 30px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:linear-gradient(180deg,var(--bg),rgba(12,12,14,.92));backdrop-filter:blur(8px);z-index:30}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand h1{font-family:'Fraunces',serif;font-weight:900;font-size:30px;letter-spacing:-.02em;line-height:.95}
+.brand h1 .slash{color:var(--accent)}
+.brand .sub{color:var(--muted);font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+.status{display:flex;gap:22px;align-items:center;text-align:right}
+.stat{display:flex;flex-direction:column;gap:1px}
+.stat .n{font-family:'JetBrains Mono',monospace;font-size:19px}
+.stat .l{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.live{display:inline-flex;align-items:center;gap:7px;color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.live .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(201,242,74,.6);animation:pulse 2.4s infinite}
+.live.syncing .dot{background:var(--gold)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,242,74,.55)}70%{box-shadow:0 0 0 9px rgba(201,242,74,0)}100%{box-shadow:0 0 0 0 rgba(201,242,74,0)}}
+.who{display:none;align-items:center;gap:10px}
+.role-badge{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:4px 9px;border-radius:6px}
+.role-badge.admin{background:rgba(201,242,74,.14);color:var(--accent)}
+.role-badge.viewer{background:rgba(111,183,255,.14);color:var(--blue)}
+#signout{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:4px 9px;font-family:inherit;font-size:11px;cursor:pointer}
+#signout:hover{color:var(--ink);border-color:var(--dim)}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:14px 30px;border-bottom:1px solid var(--line);background:var(--panel)}
+.search{flex:1;min-width:200px;display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 13px}
+.search input{flex:1;background:none;border:none;color:var(--ink);font-family:inherit;font-size:14px;outline:none}
+.search svg{flex-shrink:0;opacity:.5}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 13px;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:30px;font-size:12.5px;cursor:pointer;transition:.15s;white-space:nowrap;font-weight:500}
+.chip:hover{border-color:var(--dim);color:var(--ink)}
+.chip.on{background:var(--accent);color:var(--accent-d);border-color:var(--accent);font-weight:700}
+.ctl{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+select,.toggle{background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 11px;font-family:inherit;font-size:13px;cursor:pointer;outline:none}
+.slider-wrap{display:flex;align-items:center;gap:9px}
+input[type=range]{accent-color:var(--accent);width:96px}
+.toggle{display:inline-flex;align-items:center;gap:8px;user-select:none}
+.toggle .sw{width:30px;height:17px;border-radius:20px;background:var(--line);position:relative;transition:.2s}
+.toggle .sw::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:.2s}
+.toggle.on .sw{background:var(--coral)}.toggle.on .sw::after{left:15px;background:#fff}
+.main{display:grid;grid-template-columns:1fr 432px}
+.list{padding:8px 18px 60px;overflow:auto}
+.count-line{padding:12px 12px 6px;color:var(--dim);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.card{display:grid;grid-template-columns:64px 1fr;gap:16px;padding:17px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:.14s;position:relative}
+.card:hover{background:var(--panel)}
+.card.sel{background:linear-gradient(90deg,rgba(201,242,74,.09),transparent);box-shadow:inset 3px 0 0 var(--accent)}
+.card.fresh{animation:flash 2.5s ease-out}
+@keyframes flash{0%{background:rgba(201,242,74,.16)}100%{background:transparent}}
+.scorebox{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:2px}
+.score{font-family:'JetBrains Mono',monospace;font-size:25px;font-weight:700;line-height:1}
+.bar{width:42px;height:4px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.slab{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em}
+.card h3{font-family:'Fraunces',serif;font-weight:600;font-size:17px;line-height:1.24;letter-spacing:-.01em;margin-bottom:7px}
+.meta{display:flex;flex-wrap:wrap;gap:7px 10px;align-items:center;font-size:11.5px;color:var(--muted)}
+.meta .src{color:var(--ink);font-weight:500}
+.tag{padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.tag.niche{background:rgba(111,183,255,.13);color:var(--blue)}.tag.gen{background:var(--panel2);color:var(--dim)}
+.tag.niche.act{background:var(--blue);color:#04122a}
+.tag.fit{background:rgba(201,242,74,.13);color:var(--accent)}.tag.sens{background:rgba(255,106,69,.15);color:var(--coral)}
+.tag.new{background:var(--accent);color:var(--accent-d)}
+.cat{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim)}
+.detail{position:sticky;top:103px;height:calc(100vh - 103px);border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:24px 24px 50px}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--dim);gap:14px;padding:30px}
+.empty .big{font-family:'Fraunces',serif;font-size:21px;color:var(--muted)}
+.d-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:9px}
+.detail h2{font-family:'Fraunces',serif;font-weight:600;font-size:23px;line-height:1.22;letter-spacing:-.01em;margin-bottom:11px}
+.d-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px;font-size:12px;color:var(--muted)}
+.d-score{display:flex;align-items:center;gap:16px;padding:15px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:16px}
+.d-score .big{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:700;line-height:.9}
+.d-score .lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em}
+.signals{display:grid;gap:7px;flex:1}
+.sigrow{display:grid;grid-template-columns:78px 1fr;gap:9px;align-items:center;font-size:10.5px;color:var(--muted)}
+.sigbar{height:6px;border-radius:4px;background:var(--line);overflow:hidden}
+.sigbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--accent))}
+.warn{display:flex;gap:10px;align-items:flex-start;background:rgba(255,106,69,.09);border:1px solid rgba(255,106,69,.3);border-radius:9px;padding:11px 13px;font-size:12.5px;color:#ffb9a4;margin-bottom:16px}
+.studio-h{display:flex;align-items:center;gap:9px;margin:6px 0 12px}
+.studio-h .ln{flex:1;height:1px;background:var(--line)}
+.studio-h span{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+.nlabel{font-size:11.5px;color:var(--muted);margin-bottom:7px}
+.niche-pick{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.npill{flex:1;min-width:90px;text-align:center;padding:9px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:.15s}
+.npill:hover{border-color:var(--dim);color:var(--ink)}.npill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.gen-row{display:flex;gap:8px;flex-wrap:wrap}
+.gen-sub{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.gen-sub span{color:var(--dim);text-transform:none;letter-spacing:0;font-size:11.5px}
+.gen-btn{flex:1;min-width:96px;width:auto;padding:13px;border:none;border-radius:9px;background:var(--accent);color:var(--accent-d);font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:7px}
+.gen-btn:hover{filter:brightness(1.08)}.gen-btn:disabled{opacity:.55;cursor:wait}
+.gen-btn.alt{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.gen-btn.alt:hover{border-color:var(--dim);filter:none}
+.viewer-note{background:rgba(111,183,255,.08);border:1px solid rgba(111,183,255,.25);border-radius:9px;padding:12px 14px;font-size:13px;color:#bfe0ff;line-height:1.5}
+.ad-out{margin-top:4px;display:block}
+.ad-out>div:not(:empty){margin-top:16px}
+.ad-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+.ad-card::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(180deg,var(--accent),var(--blue))}
+.ad-card .lab{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:5px}
+.ad-card .hl{font-family:'Fraunces',serif;font-weight:900;font-size:21px;line-height:1.16;margin-bottom:12px;color:#fff}
+.ad-card .desc{font-size:14px;color:var(--ink);line-height:1.5}
+.ad-card.script .sc-concept{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:#fff;line-height:1.3;margin-bottom:10px}
+.ad-card.script .sc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.ad-card.script .sc-tags span{font-size:10.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:3px 9px}
+.ad-card.script .scene{border-top:1px solid var(--line);padding:11px 0}
+.ad-card.script .scene-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ad-card.script .scene-h b{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+.ad-card.script .scene-t{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim)}
+.ad-card.script .scene-r{display:grid;grid-template-columns:82px 1fr;gap:9px;font-size:13px;line-height:1.5;padding:3px 0}
+.ad-card.script .scene-r .sl{font-size:10.5px;color:var(--muted)}
+.ad-card.script .scene-r .says{color:#fff}
+.ad-card.script .cta-scene .sl{color:var(--accent)}
+.ad-img{width:100%;border-radius:10px;display:block;margin:4px 0 2px;opacity:0;transition:opacity .4s;background:var(--panel2);min-height:120px}
+.img-wait{color:var(--muted);font-size:13px;padding:14px 2px}
+.img-fail2{color:var(--coral);font-size:12.5px;padding:10px 0}
+.ad-points{display:flex;flex-direction:column;gap:5px;margin:12px 0 4px}
+.ad-points span{font-size:13px;color:var(--ink)}
+.cta-btn{display:inline-block;margin-top:14px;background:var(--accent);color:var(--accent-d);font-weight:700;font-size:13px;padding:9px 18px;border-radius:8px}
+.ad-card.imagead .ad-img{margin-bottom:14px}
+.imgwrap{position:relative;min-height:130px;margin-bottom:2px}
+.imgload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:12.5px;background:var(--panel2);border-radius:10px}
+.main-img{display:grid;grid-template-columns:84px 1fr;gap:9px;font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:12px}
+.main-img .sl{color:var(--accent)}
+.ia-cap{margin-top:13px;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.ia-cap .ia-line{font-size:13px;color:var(--ink);line-height:1.4}
+.ia-cap .ia-line b{font-family:'Fraunces',serif;font-weight:900;font-size:16px;color:#fff}
+.ia-cap .ia-cta{margin-top:5px;background:var(--accent);color:var(--accent-d);font-weight:700;font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;padding:6px 14px;border-radius:7px}
+.ad-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.ad-actions button,.ad-actions a.dl{flex:1 1 calc(50% - 4px);min-width:0;padding:9px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;font-family:inherit;font-size:12.5px;cursor:pointer;text-align:center;text-decoration:none}
+.ad-actions button:hover,.ad-actions a.dl:hover{border-color:var(--dim)}
+.spinner{width:15px;height:15px;border:2px solid rgba(12,12,14,.3);border-top-color:var(--accent-d);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.spinner.dk{border:2px solid rgba(255,255,255,.25);border-top-color:var(--ink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{color:var(--coral);font-size:12.5px;margin-top:10px}
+.detclose{display:none}
+.login{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);background-image:radial-gradient(circle at 80% 0%,rgba(201,242,74,.12),transparent 45%),radial-gradient(circle at 0% 100%,rgba(111,183,255,.08),transparent 40%);overflow:auto}
+.login-card{width:100%;max-width:430px;text-align:center;animation:loginIn .5s ease}
+@keyframes loginIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.login-badge{display:inline-flex;align-items:center;gap:7px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;border:1px solid rgba(201,242,74,.3);border-radius:30px;padding:5px 12px;margin-bottom:20px}
+.login-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(201,242,74,.6);animation:pulse 2.4s infinite}
+.login-card h1{font-family:'Fraunces',serif;font-weight:900;font-size:40px;letter-spacing:-.02em;line-height:.95;margin-bottom:8px}
+.login-card h1 .slash{color:var(--accent)}
+.login-card .sub{color:var(--ink);font-size:14px;font-weight:600;margin-bottom:12px}
+.login-blurb{color:var(--muted);font-size:13.5px;line-height:1.55;max-width:384px;margin:0 auto 18px}
+.login-feat{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin-bottom:26px}
+.login-feat span{font-size:11px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:30px;padding:5px 11px}
+.login-field{position:relative;margin-bottom:12px}
+.login-field input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:14px 46px 14px 16px;font-family:inherit;font-size:15px;outline:none}
+.login-field input:focus{border-color:var(--accent)}
+#login-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--dim);width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:8px}
+#login-eye:hover{color:var(--ink)}
+.login-enter{width:100%;padding:14px;border:none;border-radius:10px;background:var(--accent);color:var(--accent-d);font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;transition:.15s}
+.login-enter:hover{filter:brightness(1.08)}
+.login-enter:disabled{opacity:.6;cursor:wait}
+.login-err{color:var(--coral);font-size:13px;margin-top:12px;min-height:16px}
+.login-hint{color:var(--dim);font-size:11.5px;margin-top:18px;line-height:1.6}
+.login-hint b{color:var(--muted)}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}::-webkit-scrollbar-track{background:transparent}
+@media(max-width:900px){
+  .main{grid-template-columns:1fr}
+  .detail{position:fixed;inset:0;height:100%;z-index:50;border-left:none;transform:translateX(100%);transition:.25s;top:0;padding:56px 18px 50px}
+  .detail.open{transform:none}
+  .detclose{display:flex;position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);align-items:center;justify-content:center;cursor:pointer;font-size:22px;z-index:2}
+  header{padding:18px 18px 12px;flex-wrap:wrap;gap:12px}
+  .controls{padding:12px 16px;gap:10px}
+  .brand h1{font-size:24px}
+  .search{min-width:100%;order:-1}
+  .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;padding-bottom:3px}
+  .chips::-webkit-scrollbar{height:0}
+  .status{gap:16px}
+  .list{padding:6px 12px 60px}
+}
+@media(max-width:560px){
+  header{padding:14px 14px 10px}
+  .brand h1{font-size:21px}
+  .brand .sub{font-size:10.5px}
+  .status{gap:10px 18px;width:100%;justify-content:space-between;text-align:left;flex-wrap:wrap}
+  .stat .n{font-size:16px}
+  .card{grid-template-columns:50px 1fr;gap:12px;padding:15px 8px}
+  .score{font-size:21px}
+  .bar{width:38px}
+  .card h3{font-size:15.5px}
+  .meta{gap:6px 8px;font-size:11px}
+  .detail h2{font-size:20px}
+  .ad-card .hl{font-size:19px}
+  .npill{min-width:0;flex:1 1 auto}
+  .d-score{gap:12px}
+  .d-score .big{font-size:36px}
+}
+</style>
+</head>
+<body>
+<div class="login" id="login-screen">
+  <div class="login-card">
+    <div class="login-badge"><span class="dot"></span> Live · updates every 30 min</div>
+    <h1>SIGNAL<span class="slash">//</span>DESK</h1>
+    <div class="sub">Real-time virality scoring + instant ad creative</div>
+    <p class="login-blurb">Catch the US news stories about to go viral — scored 0–100 — then turn any story into newsjacking ad copy, video scripts, and poster image ads across 10 verticals: insurance, Medicare, refinance, supplements, home services &amp; more.</p>
+    <div class="login-feat"><span>Live news scoring</span><span>Ad copy</span><span>Video scripts</span><span>AI images</span></div>
+    <div class="login-field">
+      <input id="login-key" type="password" placeholder="Enter your access key" autocomplete="off">
+      <button id="login-eye" type="button" title="Show / hide" aria-label="Show or hide key">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button id="login-btn" class="login-enter">Enter</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint"><b>Admin key</b> → view + generate copy, scripts &amp; images.&nbsp; <b>Viewer key</b> → browse only.<br>No key yet? Ask your team admin.</div>
+  </div>
+</div>
+<header>
+  <div class="brand">
+    <h1>SIGNAL<span class="slash">//</span>DESK</h1>
+    <div class="sub">Live virality intelligence · insurance · finance · health · home services</div>
+  </div>
+  <div class="status">
+    <div class="live" id="live" title="Sync now"><span class="dot"></span> <span id="live-l">Live</span></div>
+    <div class="stat"><span class="n" id="st-count">0</span><span class="l">Articles</span></div>
+    <div class="stat"><span class="n" id="st-next">—</span><span class="l">Next sync</span></div>
+    <div class="stat"><span class="n" id="st-time">—</span><span class="l">Last sync</span></div>
+    <div class="who" id="who"><span class="role-badge" id="role-badge"></span><button id="signout">sign out</button></div>
+  </div>
+</header>
+<div class="controls">
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="q" placeholder="Search headlines, sources…" autocomplete="off">
+  </div>
+  <div class="chips" id="niche-chips"></div>
+  <div class="ctl"><span>Sort</span><select id="sort"><option value="vir">Virality ↓</option><option value="fit">Niche fit ↓</option><option value="new">Newest</option></select></div>
+  <div class="ctl slider-wrap"><span>Min score</span><input type="range" id="minv" min="0" max="100" value="0"><span class="mono" id="minv-l">0</span></div>
+  <div class="toggle" id="hide-sens"><span class="sw"></span> Hide sensitive</div>
+</div>
+<div class="main">
+  <div class="list"><div class="count-line" id="count-line">loading…</div><div id="cards"></div></div>
+  <aside class="detail" id="detail">
+    <div class="empty" id="empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".5"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+      <div class="big">Select a story</div><div>Pick a headline to see its virality breakdown and generate an ad.</div>
+    </div>
+    <div id="detail-body" style="display:none"></div>
+  </aside>
+</div>
+<script>
+const NICHES=["Home Insurance","Medicare","Refinance","Memory Loss Supplements","Weight Loss Supplements","Bathroom Services","Gun Permits","Bizops","Window Services","Auto Insurance"];
+const AD_NICHES=NICHES;
+const state={niche:"All",sort:"vir",minv:0,q:"",hideSens:false,selKey:null,adNiche:null};
+let DATA=[], seenKeys=new Set(), firstLoad=true;
+let lastAdCopy=null;
+let TOKEN=null, ROLE=null;
+const scoreColor=s=>s>=75?'var(--accent)':s>=55?'var(--gold)':s>=38?'#cbb98a':'var(--dim)';
+const ageStr=iso=>{if(!iso)return'—';const h=(Date.now()-new Date(iso))/36e5;if(h<1)return Math.max(1,Math.round(h*60))+'m';if(h<24)return Math.round(h)+'h';return Math.round(h/24)+'d';};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const str=v=>v==null?'':Array.isArray(v)?v.filter(Boolean).join(' '):(typeof v==='object'?Object.values(v).join(' '):String(v));
+const isNew=iso=>iso&&(Date.now()-new Date(iso))/6e4<35;
+const art=d=>({title:d.title,source:d.source,domain:d.domain,category:d.category,sensitive:d.sensitive});
+const copyText=t=>{navigator.clipboard&&navigator.clipboard.writeText(t);};
+// ---- poster compositor (Facebook-style image ad: photo + overlaid text) ----
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('img'));i.src=src;});}
+function coverDraw(ctx,img,W,H){const ir=img.width/img.height,cr=W/H;let w,h,x,y;if(ir>cr){h=H;w=H*ir;x=(W-w)/2;y=0;}else{w=W;h=W/ir;x=0;y=(H-h)/2;}ctx.drawImage(img,x,y,w,h);}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function wrapLines(ctx,text,maxW){const words=String(text||'').split(/\s+/).filter(Boolean);const lines=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;}if(cur)lines.push(cur);return lines;}
+async function buildPoster(o){
+  const W=1080,H=1350,M=72;const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');
+  const niche=String(o.niche||'');
+  let headline=String(o.headline||'').trim()||(niche?niche+' — A Smarter Choice':'A Smarter Choice Today');
+  let subhead=String(o.subhead||'').trim()||'See how much you could save in minutes.';
+  const badge=(String(o.badge||'').trim()||'Free Quote').toUpperCase();
+  const cta=(String(o.cta||'').trim()||'Learn More').toUpperCase();
+  // background photo (or branded gradient fallback)
+  let bg=null; if(o.image){try{bg=await loadImg(o.image);}catch(e){bg=null;}}
+  if(bg){coverDraw(ctx,bg,W,H);} else {const lg=ctx.createLinearGradient(0,0,W,H);lg.addColorStop(0,'#243016');lg.addColorStop(1,'#0c0c0e');ctx.fillStyle=lg;ctx.fillRect(0,0,W,H);}
+  // top scrim so badge + brand read on any photo
+  let g2=ctx.createLinearGradient(0,0,0,H*0.22);g2.addColorStop(0,'rgba(8,8,10,.6)');g2.addColorStop(1,'rgba(8,8,10,0)');ctx.fillStyle=g2;ctx.fillRect(0,0,W,H*0.22);
+  try{await document.fonts.load('900 80px "Fraunces"');await document.fonts.load('700 34px "Hanken Grotesk"');await document.fonts.load('500 40px "Hanken Grotesk"');await document.fonts.ready;}catch(e){}
+  const maxW=W-M*2;
+  // auto-fit headline: biggest size that wraps to <=3 lines
+  let hlSize=84,hl=[];for(const s of [84,74,64,56,48]){ctx.font='900 '+s+'px "Fraunces", serif';hl=wrapLines(ctx,headline,maxW);hlSize=s;if(hl.length<=3)break;}
+  const hlLH=Math.round(hlSize*1.08);
+  ctx.font='500 40px "Hanken Grotesk", sans-serif';let sh=wrapLines(ctx,subhead,maxW);if(sh.length>3)sh=sh.slice(0,3);const shLH=52;
+  ctx.font='700 34px "Hanken Grotesk", sans-serif';const ctaW=Math.min(maxW,ctx.measureText(cta).width+76),ctaH=88;
+  const kick=niche.toUpperCase(),kickH=kick?40:0,gKick=kick?18:0,gHS=26,gSC=34,pad=46;
+  const blockH=kickH+gKick+hl.length*hlLH+gHS+sh.length*shLH+gSC+ctaH;
+  let startY=H-M-blockH; if(startY<M+10)startY=M+10;
+  const panelTop=startY-pad;
+  // soft edge + solid lower panel => text is ALWAYS legible regardless of photo
+  let pe=ctx.createLinearGradient(0,panelTop-100,0,panelTop);pe.addColorStop(0,'rgba(8,8,10,0)');pe.addColorStop(1,'rgba(8,8,10,.85)');ctx.fillStyle=pe;ctx.fillRect(0,panelTop-100,W,100);
+  ctx.fillStyle='rgba(8,8,10,.85)';ctx.fillRect(0,panelTop,W,H-panelTop);
+  // badge (top-left)
+  ctx.font='700 30px "Hanken Grotesk", sans-serif';const bw=ctx.measureText(badge).width;ctx.fillStyle='#C9F24A';roundRect(ctx,M,M,bw+46,58,29);ctx.fill();ctx.fillStyle='#0c0c0e';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(badge,M+23,M+30);
+  // brand (top-right)
+  ctx.font='700 26px "JetBrains Mono", monospace';ctx.fillStyle='rgba(236,234,226,.92)';ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText('SIGNAL // DESK',W-M,M+30);
+  // text block
+  let y=startY;ctx.textAlign='left';ctx.textBaseline='top';
+  if(kick){ctx.font='700 26px "JetBrains Mono", monospace';ctx.fillStyle='#C9F24A';ctx.fillText(kick,M,y);y+=kickH+gKick;}
+  ctx.font='900 '+hlSize+'px "Fraunces", serif';ctx.fillStyle='#ffffff';for(const ln of hl){ctx.fillText(ln,M,y);y+=hlLH;}
+  y+=gHS;
+  ctx.font='500 40px "Hanken Grotesk", sans-serif';ctx.fillStyle='rgba(236,234,226,.95)';for(const ln of sh){ctx.fillText(ln,M,y);y+=shLH;}
+  y+=gSC;
+  ctx.fillStyle='#C9F24A';roundRect(ctx,M,y,ctaW,ctaH,16);ctx.fill();ctx.fillStyle='#0c0c0e';ctx.font='700 34px "Hanken Grotesk", sans-serif';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(cta,M+38,y+ctaH/2+2);
+  try{return cv.toDataURL('image/png');}catch(e){return o.image||'';}
+}
+
+// ---- auth ----
+function saveAuth(t,r){TOKEN=t;ROLE=r;try{localStorage.setItem('sd_token',t);localStorage.setItem('sd_role',r);}catch(e){}}
+function loadAuth(){try{TOKEN=localStorage.getItem('sd_token');ROLE=localStorage.getItem('sd_role');}catch(e){}}
+function clearAuth(){TOKEN=null;ROLE=null;try{localStorage.removeItem('sd_token');localStorage.removeItem('sd_role');}catch(e){}}
+function authedFetch(url,opts){opts=opts||{};opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{},{Authorization:'Bearer '+TOKEN});return fetch(url,opts);}
+function showLogin(){document.getElementById('login-screen').style.display='flex';}
+async function doLogin(){
+  const inp=document.getElementById('login-key'),err=document.getElementById('login-err'),btn=document.getElementById('login-btn');
+  const key=inp.value.trim(); if(!key)return;
+  err.textContent='';btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key})});
+    const j=await r.json(); if(!r.ok)throw new Error(j.error||'Sign-in failed');
+    saveAuth(j.token,j.role); onAuthed();
+  }catch(e){ err.textContent=String(e.message||e); }
+  btn.disabled=false;btn.textContent='Enter';
+}
+function signOut(){clearAuth();location.reload();}
+function onAuthed(){
+  document.getElementById('login-screen').style.display='none';
+  const w=document.getElementById('who');w.style.display='flex';
+  const rb=document.getElementById('role-badge');rb.textContent=ROLE==='admin'?'Admin':'Viewer';rb.className='role-badge '+(ROLE==='admin'?'admin':'viewer');
+  load();
+}
+
+// ---- data ----
+async function load(){
+  if(!TOKEN)return;
+  try{
+    const r=await authedFetch('/api/news',{method:'GET'});
+    if(r.status===401){clearAuth();showLogin();return;}
+    const j=await r.json(); if(!r.ok)throw new Error(j.error||'load failed');
+    if(j.role)ROLE=j.role;
+    const rows=j.rows||[];
+    rows.forEach(d=>{d._key=(d.title||'').slice(0,50)+d.domain; if(typeof d.breakdown==='string'){try{d.breakdown=JSON.parse(d.breakdown)}catch(e){d.breakdown={}}}});
+    DATA=rows; render(); status();
+  }catch(e){ document.getElementById('count-line').textContent='could not load — '+String(e.message||e); }
+}
+function status(){
+  document.getElementById('st-count').textContent=DATA.length;
+  let last=null; DATA.forEach(d=>{const t=d.last_scored||d.first_seen; if(t&&(!last||t>last))last=t;});
+  if(last){const dt=new Date(last);
+    document.getElementById('st-time').textContent=dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const m=Math.round((dt.getTime()+1800000-Date.now())/6e4);
+    document.getElementById('st-next').textContent=(m>0?m+'m':'due');}
+}
+function render(){
+  let rows=DATA.filter(d=>{
+    if(state.niche!=="All"){const mns=String(d.matched_niche||'').split(', ');if(!mns.includes(state.niche))return false;}
+    if(state.minv&&d.virality_score<state.minv)return false;
+    if(state.hideSens&&d.sensitive)return false;
+    if(state.q){const q=state.q.toLowerCase();if(!(d.title.toLowerCase().includes(q)||(d.source||'').toLowerCase().includes(q)))return false;}
+    return true;
+  });
+  rows.sort((a,b)=>state.sort==="fit"?b.niche_fit-a.niche_fit||b.virality_score-a.virality_score:state.sort==="new"?new Date(b.published||0)-new Date(a.published||0):b.virality_score-a.virality_score);
+  document.getElementById('count-line').textContent=rows.length+" stories"+(state.niche!=="All"?" · "+state.niche:"")+" · updates every 30 min";
+  const c=document.getElementById('cards');c.innerHTML='';
+  rows.forEach(d=>{
+    const mns=String(d.matched_niche||'').split(', ').filter(Boolean);
+    const isNiche=mns.some(n=>NICHES.includes(n));
+    const fresh=!firstLoad&&!seenKeys.has(d._key);
+    const el=document.createElement('div');
+    el.className='card'+(d._key===state.selKey?' sel':'')+(fresh?' fresh':'');
+    el.onclick=()=>select(d._key);
+    const tags=mns.map(n=>`<span class="tag ${NICHES.includes(n)?'niche':'gen'}${n===state.niche?' act':''}">${esc(n)}</span>`).join('');
+    el.innerHTML=`<div class="scorebox"><div class="score" style="color:${scoreColor(d.virality_score)}">${Math.round(d.virality_score)}</div><div class="bar"><i style="width:${d.virality_score}%;background:${scoreColor(d.virality_score)}"></i></div><div class="slab">viral</div></div>
+      <div><h3>${esc(d.title)}</h3><div class="meta"><span class="src">${esc(d.source||d.domain||'—')}</span><span class="cat">${esc(d.category)}</span><span>${ageStr(d.published)}</span>
+      ${isNew(d.first_seen)?'<span class="tag new">● new</span>':''}
+      ${tags}${isNiche?`<span class="tag fit">fit ${d.niche_fit}</span>`:''}${d.sensitive?'<span class="tag sens">⚠ sensitive</span>':''}</div></div>`;
+    c.appendChild(el);
+  });
+  if(!rows.length)c.innerHTML='<div style="padding:50px 14px;color:var(--dim);text-align:center">No stories match these filters.</div>';
+  DATA.forEach(d=>seenKeys.add(d._key)); firstLoad=false;
+  document.getElementById('st-count').textContent=DATA.length;
+}
+const SIGLABEL={emotion:'Emotion',curiosity:'Curiosity',controversy:'Conflict',timeliness:'Timeliness',utility:'Utility',concreteness:'Concrete',sentiment:'Sentiment',reach:'Reach',structure:'Structure'};
+function select(key){
+  state.selKey=key; const d=DATA.find(x=>x._key===key); if(!d)return;
+  const firstN=String(d.matched_niche||'').split(', ')[0];
+  state.adNiche=AD_NICHES.includes(firstN)?firstN:AD_NICHES[0];
+  document.getElementById('empty').style.display='none';
+  const b=document.getElementById('detail-body');b.style.display='block';
+  const sigs=Object.keys(SIGLABEL).map(k=>`<div class="sigrow"><span>${SIGLABEL[k]}</span><div class="sigbar"><i style="width:${(d.breakdown&&d.breakdown[k])||0}%"></i></div></div>`).join('');
+  let studio;
+  if(ROLE==='admin'){
+    studio=`<div class="studio-h"><span>Ad Studio</span><div class="ln"></div></div>
+      <div class="nlabel">Angle this story toward:</div><div class="niche-pick" id="niche-pick"></div>
+      <div class="gen-row">
+        <button class="gen-btn" id="copybtn" onclick="generateCopy()">✦ Ad copy</button>
+        <button class="gen-btn alt" id="imgbtn" onclick="generateImage()">🖼 Image</button>
+      </div>
+      <div class="gen-sub">Full ad <span>— pick a format</span></div>
+      <div class="gen-row">
+        <button class="gen-btn alt" id="imageadbtn" onclick="generateImageAd()">📸 Image Ad</button>
+        <button class="gen-btn alt" id="videoadbtn" onclick="generateVideoAd()">🎥 Video Ad</button>
+      </div>
+      <div class="ad-out" id="ad-out"><div id="out-copy"></div><div id="out-image"></div><div id="out-imagead"></div><div id="out-videoad"></div></div>`;
+  }else{
+    studio=`<div class="studio-h"><span>Ad Studio</span><div class="ln"></div></div>
+      <div class="viewer-note">👁 Viewer access — ad generation is disabled. Sign in with the admin key to create ad copy, images, and full ads.</div>`;
+  }
+  b.innerHTML=`<button class="detclose" onclick="document.getElementById('detail').classList.remove('open')">×</button>
+    <div class="d-kicker">Selected story</div><h2>${esc(d.title)}</h2>
+    <div class="d-meta"><span class="src" style="color:var(--ink);font-weight:600">${esc(d.source||d.domain)}</span> · <span>${esc(d.category)}</span> · <span>${ageStr(d.published)} ago</span></div>
+    <div class="d-score"><div><div class="big" style="color:${scoreColor(d.virality_score)}">${Math.round(d.virality_score)}</div><div class="lbl">virality / 100</div></div><div class="signals">${sigs}</div></div>
+    ${d.sensitive?'<div class="warn"><span>⚠</span><div><b>Brand-safety flag.</b> This story touches tragedy/violence/loss. Newsjacking it risks backlash — review carefully or skip.</div></div>':''}
+    ${studio}`;
+  if(ROLE==='admin')paintNiche();
+  if(window.innerWidth<=900)document.getElementById('detail').classList.add('open');
+  render();
+}
+function paintNiche(){const w=document.getElementById('niche-pick');if(!w)return;w.innerHTML='';AD_NICHES.forEach(n=>{const p=document.createElement('div');p.className='npill'+(state.adNiche===n?' on':'');p.textContent=n;p.onclick=()=>{state.adNiche=n;paintNiche();};w.appendChild(p);});}
+
+async function generateCopy(){
+  const d=DATA.find(x=>x._key===state.selKey);const btn=document.getElementById('copybtn');const out=document.getElementById('out-copy');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Writing…';out.innerHTML='';
+  try{
+    const res=await authedFetch('/api/generate',{method:'POST',body:JSON.stringify({mode:'copy',niche:state.adNiche,article:art(d)})});
+    const ad=await res.json(); if(!res.ok||ad.error)throw new Error(ad.error||'failed');
+    out.innerHTML=`<div class="ad-card"><div class="lab">${esc(state.adNiche)} · ad copy</div><div class="hl">${esc(str(ad.headline))}</div><div class="desc">${esc(str(ad.description))}</div>
+      <div class="ad-actions"><button onclick="generateCopy()">↻ Regenerate</button><button id="cp-copy">⧉ Copy</button></div></div>`;
+    document.getElementById('cp-copy').onclick=()=>copyText(str(ad.headline)+' — '+str(ad.description));
+  }catch(e){ out.innerHTML=`<div class="err">${esc(String(e.message||e))}</div>`; }
+  btn.disabled=false;btn.innerHTML='✦ Ad copy';
+}
+async function generateImage(){
+  const d=DATA.find(x=>x._key===state.selKey);
+  const btn=document.getElementById('imgbtn');const out=document.getElementById('out-image');
+  btn.disabled=true;btn.innerHTML='<span class="spinner dk"></span> Painting…';
+  out.innerHTML=`<div class="ad-card"><div class="lab">${esc(state.adNiche)} · ad image</div>
+    <div class="imgwrap" id="imgwrap"><div class="imgload" id="imgload"><span class="spinner dk"></span> Reading the story…</div></div>
+    <div class="ad-actions"><button onclick="generateImage()">↻ Regenerate</button><a class="dl" id="imgdl" download="signal-desk-image.png">⤓ Download</a></div></div>`;
+  const loader=document.getElementById('imgload'),wrap=document.getElementById('imgwrap'),dl=document.getElementById('imgdl');
+  try{
+    let prompt='';
+    try{const pr=await authedFetch('/api/generate',{method:'POST',body:JSON.stringify({mode:'imgprompt',niche:state.adNiche,article:art(d)})});const pj=await pr.json();if(pr.ok&&pj.prompt)prompt=str(pj.prompt);}catch(e){}
+    if(loader)loader.innerHTML='<span class="spinner dk"></span> Generating image… ~15s';
+    const res=await authedFetch('/api/image',{method:'POST',body:JSON.stringify({niche:state.adNiche,prompt,headline:d&&d.title})});
+    const j=await res.json(); if(!res.ok||j.error)throw new Error(j.error||'failed');
+    if(dl)dl.href=j.image;
+    if(loader&&j.source)loader.innerHTML='<span class="spinner dk"></span> Loading… ('+esc(j.source)+')';
+    const img=document.createElement('img');img.className='ad-img';img.alt='ad image';
+    img.onload=()=>{img.style.opacity=1;if(loader)loader.style.display='none';};
+    img.onerror=()=>{if(loader)loader.innerHTML="Couldn't load the image — tap Regenerate.";};
+    img.src=j.image; wrap.appendChild(img);
+  }catch(e){ if(loader)loader.innerHTML=esc(String(e.message||e)); }
+  btn.disabled=false;btn.innerHTML='🖼 Image';
+}
+
+async function generateImageAd(){
+  const d=DATA.find(x=>x._key===state.selKey);const btn=document.getElementById('imageadbtn');const out=document.getElementById('out-imagead');
+  btn.disabled=true;btn.innerHTML='<span class="spinner dk"></span> Writing…';
+  out.innerHTML=`<div class="ad-card imagead"><div class="lab">${esc(state.adNiche)} · image ad (poster)</div>
+    <div class="imgload"><span class="spinner dk"></span> Writing the ad copy…</div></div>`;
+  try{
+    const res=await authedFetch('/api/generate',{method:'POST',body:JSON.stringify({mode:'imagead',niche:state.adNiche,article:art(d)})});
+    const c=await res.json(); if(!res.ok||c.error)throw new Error(c.error||'failed');
+    lastAdCopy=c;
+    await paintPoster(c);
+  }catch(e){ out.innerHTML=`<div class="err">${esc(String(e.message||e))}</div>`; }
+  btn.disabled=false;btn.innerHTML='📸 Image Ad';
+}
+// Renders (or re-renders) the poster for a given copy object. Each call fetches a fresh photo.
+async function paintPoster(c){
+  const d=DATA.find(x=>x._key===state.selKey);const out=document.getElementById('out-imagead');
+  out.innerHTML=`<div class="ad-card imagead"><div class="lab">${esc(state.adNiche)} · image ad (poster)</div>
+    <div class="imgwrap" id="ia-wrap"><div class="imgload" id="ia-load"><span class="spinner dk"></span> Generating the photo… ~15s</div></div>
+    <div class="ad-actions">
+      <button id="ia-regen">↻ New ad</button>
+      <button id="ia-newphoto">🖼 New photo</button>
+      <a class="dl" id="ia-dl" download="signal-desk-ad.png">⤓ Download</a>
+      <button id="ia-copy">⧉ Copy text</button>
+    </div>
+    <div class="ia-cap" id="ia-cap"></div></div>`;
+  const load=document.getElementById('ia-load'),wrap=document.getElementById('ia-wrap'),dl=document.getElementById('ia-dl'),cap=document.getElementById('ia-cap');
+  document.getElementById('ia-regen').onclick=generateImageAd;            // brand-new copy + photo
+  document.getElementById('ia-newphoto').onclick=()=>paintPoster(c);      // keep copy, fresh photo
+  document.getElementById('ia-copy').onclick=()=>copyText(`${str(c.headline)}\n${str(c.subhead)}\nCTA: ${str(c.cta)||'Learn More'}`);
+  let imageData='';
+  try{const ir=await authedFetch('/api/image',{method:'POST',body:JSON.stringify({niche:state.adNiche,prompt:str(c.imgprompt),headline:d&&d.title})});const ij=await ir.json();if(ir.ok&&ij.image)imageData=ij.image;}catch(e){}
+  if(load)load.innerHTML='<span class="spinner dk"></span> Composing the poster…';
+  try{
+    const poster=await buildPoster({image:imageData,badge:str(c.badge),headline:str(c.headline),subhead:str(c.subhead),cta:str(c.cta),niche:state.adNiche});
+    if(dl)dl.href=poster;
+    const img=document.createElement('img');img.className='ad-img';img.alt='image ad poster';
+    img.onload=()=>{img.style.opacity=1;if(load)load.style.display='none';};
+    img.src=poster; wrap.appendChild(img);
+    cap.innerHTML=`<div class="ia-line"><b>${esc(str(c.headline))}</b></div><div class="ia-line">${esc(str(c.subhead))}</div><span class="ia-cta">${esc(str(c.cta)||'Learn More')}</span>`+(imageData?'':'<div class="img-fail2">Image service didn\u2019t respond — branded background used. Tap “New photo” to retry.</div>');
+  }catch(e){ if(load)load.innerHTML=esc(String(e.message||e)); }
+}
+async function generateVideoAd(){
+  const d=DATA.find(x=>x._key===state.selKey);const btn=document.getElementById('videoadbtn');const out=document.getElementById('out-videoad');
+  btn.disabled=true;btn.innerHTML='<span class="spinner dk"></span> Writing…';out.innerHTML='';
+  try{
+    const res=await authedFetch('/api/generate',{method:'POST',body:JSON.stringify({mode:'script',niche:state.adNiche,article:art(d)})});
+    const j=await res.json(); if(!res.ok||j.error)throw new Error(j.error||'failed');
+    const s=j.script||{};
+    const scenes=Array.isArray(s.scenes)?s.scenes:[];
+    const scenesHtml=scenes.map((sc,i)=>`<div class="scene"><div class="scene-h"><b>${esc(str(sc.scene)||('Scene '+(i+1)))}</b><span class="scene-t">${esc(str(sc.time))}</span></div>
+      <div class="scene-r"><span class="sl">🎬 Visual</span><span>${esc(str(sc.visual))}</span></div>
+      <div class="scene-r"><span class="sl">🗣 Voiceover</span><span class="says">${esc(str(sc.voiceover))}</span></div>
+      <div class="scene-r"><span class="sl">▭ On-screen</span><span>${esc(str(sc.onscreen))}</span></div></div>`).join('');
+    out.innerHTML=`<div class="ad-card script"><div class="lab">${esc(state.adNiche)} · 15-sec video ad</div>
+      <div class="sc-concept">${esc(str(s.concept))}</div>
+      ${scenesHtml}
+      <div class="scene cta-scene"><div class="scene-r"><span class="sl">📣 CTA</span><span class="says">${esc(str(s.cta))}</span></div></div>
+      <div class="ad-actions"><button onclick="generateVideoAd()">↻ Regenerate</button><button id="va-copy">⧉ Copy</button></div></div>`;
+    document.getElementById('va-copy').onclick=()=>copyText(videoToText(s));
+  }catch(e){ out.innerHTML=`<div class="err">${esc(String(e.message||e))}</div>`; }
+  btn.disabled=false;btn.innerHTML='🎥 Video Ad';
+}
+function videoToText(s){
+  let t=`CONCEPT: ${str(s.concept)}\n`;
+  (s.scenes||[]).forEach((sc,i)=>{t+=`\n${str(sc.scene)||('Scene '+(i+1))} (${str(sc.time)})\nVISUAL: ${str(sc.visual)}\nVOICEOVER: ${str(sc.voiceover)}\nON-SCREEN: ${str(sc.onscreen)}\n`;});
+  t+=`\nCTA: ${str(s.cta)}`; return t;
+}
+
+(function(){
+  const ch=document.getElementById('niche-chips');
+  ["All",...NICHES,"General (bridge needed)"].forEach(n=>{const c=document.createElement('div');c.className='chip'+(n==="All"?' on':'');c.textContent=n==="General (bridge needed)"?"General":n;c.onclick=()=>{state.niche=n;[...ch.children].forEach(x=>x.classList.remove('on'));c.classList.add('on');render();};ch.appendChild(c);});
+  document.getElementById('q').oninput=e=>{state.q=e.target.value;render();};
+  document.getElementById('sort').onchange=e=>{state.sort=e.target.value;render();};
+  document.getElementById('minv').oninput=e=>{state.minv=+e.target.value;document.getElementById('minv-l').textContent=e.target.value;render();};
+  document.getElementById('hide-sens').onclick=function(){state.hideSens=!state.hideSens;this.classList.toggle('on');render();};
+  document.getElementById('live').onclick=()=>{if(TOKEN){load();status();}};
+  document.getElementById('login-btn').onclick=doLogin;
+  document.getElementById('login-key').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('login-eye').onclick=function(){const i=document.getElementById('login-key');i.type=i.type==='password'?'text':'password';};
+  document.getElementById('signout').onclick=signOut;
+  loadAuth();
+  if(TOKEN){onAuthed();}else{showLogin();}
+  setInterval(()=>{if(TOKEN)load();},60000);
+  setInterval(()=>{if(TOKEN)status();},15000);
+})();
+</script>
+</body>
+</html>
