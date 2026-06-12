@@ -1,0 +1,19 @@
+# Manual one-time (or occasional) re-score of the whole article backlog.
+# Use after changing scorer.py so existing stories get the new niche logic,
+# instead of waiting for them to age out. Click: Actions -> rescore-backlog -> Run workflow.
+name: rescore-backlog
+on:
+  workflow_dispatch: {}
+jobs:
+  rescore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - name: Re-score all stored articles
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python -m app.rescore
