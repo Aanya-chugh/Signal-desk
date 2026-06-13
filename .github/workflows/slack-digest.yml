@@ -1,0 +1,23 @@
+# Posts the daily Signal Desk digest to Slack.
+# 20:00 UTC = 4:00 PM US Eastern (EDT). In US winter (EST) this lands at 3:00 PM ET,
+# still a fine afternoon slot; nudge the hour here if you ever want it exact year-round.
+name: slack-digest
+on:
+  schedule:
+    - cron: "0 20 * * *"     # every day, 20:00 UTC
+  workflow_dispatch: {}       # manual "Run workflow" button for testing
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - name: Post daily digest to Slack
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        run: python -m app.slack_digest
