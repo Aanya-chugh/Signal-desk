@@ -1,0 +1,29 @@
+# Posts the daily Signal Desk digest to Slack.
+# Now DMs every workspace member (see app/slack_digest.py).
+# 13:00 UTC = 9:00 AM US Eastern (EDT, mid-Mar–early Nov). In US winter (EST) this lands at
+# 8:00 AM ET. UTC doesn't observe daylight saving, so it drifts by an hour seasonally;
+# nudge the hour here if you ever want it pinned exactly year-round.
+name: slack-digest
+on:
+  schedule:
+    - cron: "0 13 * * *"     # every day, 13:00 UTC (~9 AM US Eastern)
+  workflow_dispatch: {}       # manual "Run workflow" button for testing
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - name: Post daily digest to Slack
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}   # no longer used; harmless to leave
+          # --- optional DM-broadcast toggles (set these as repo *Variables*, not secrets) ---
+          DIGEST_TEST_USER: ${{ vars.DIGEST_TEST_USER }}        # set to your @handle/email to DM only yourself; clear it to go live
+          DIGEST_INCLUDE_GUESTS: ${{ vars.DIGEST_INCLUDE_GUESTS }}  # "true" to also DM guests (default: skip)
+          DIGEST_MAX_USERS: ${{ vars.DIGEST_MAX_USERS }}        # optional integer safety cap
+        run: python -m app.slack_digest
